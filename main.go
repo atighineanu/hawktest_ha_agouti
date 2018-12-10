@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"ssher" //---make sure you setup your id_rsa password, line #20
+	"ssher" //---replace it with https://github.com/atighineanu/ssher; >>> make sure you write your id_rsa password, line #20;
 	"strings"
 	"testing"
 	"time"
