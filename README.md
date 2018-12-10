@@ -1,5 +1,6 @@
 # hawktest\_ha\_agouti
 ####What it does:
+```
 	* logs into the ha_cluster
 	* sets stonith-sbd to maintenance mode 
 	* checks from crm if it is so
@@ -21,6 +22,7 @@
 	* deletes the primitive cool_primitive
 	* checks if the primitive is properly deleted (from 'crm resources list')
 	END.
+	```
 
 
 ####Additional remarks & reqs:
