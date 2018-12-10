@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"ssher" //---replace it with https://github.com/atighineanu/ssher; >>> make sure you write your id_rsa password, line #20;
+
+	//--- also, export the client's ssh-key(s) to the server you are going to test (see README notes)
 	"strings"
 	"testing"
 	"time"
@@ -152,8 +154,9 @@ func Login(linku string, page *agouti.Page) {
 }
 
 //--- changes stonith-sbd and 1st listed node's state (to maintenance)
-//--- creates a primitive with giver start, stop, monitor params & checks if all timeout values are set accordungly
-func Cluster_Troubler(linku string, page *agouti.Page, ip string) {
+//--- creates a primitive with given start, stop, monitor params & checks if all timeout values are set accordungly
+//--- This function covers test for SLE 15
+func Cluster_Troubler_15(linku string, page *agouti.Page, ip string) {
 
 	//--- setting stonith-sbd maintenance state ON/OFF
 	_, err := Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div", page)
@@ -481,11 +484,11 @@ func main() {
 		t.Fatal("Failed to start Selenium:", err)
 	}
 
-	//ssher.SSH("root", ip, "crm status | egrep -i \"stonith|unmanaged\"")
-	//time.Sleep(1000 * time.Second)
-
 	page := PageRefresher(linku, Driver)
-	Login(linku, page)
 
-	Cluster_Troubler(linku, page, ip)
+	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "15") {
+		Login(linku, page)
+		Cluster_Troubler_15(linku, page, ip)
+	}
+
 }
