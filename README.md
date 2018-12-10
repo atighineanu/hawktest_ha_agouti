@@ -22,11 +22,10 @@
 	* deletes the primitive cool_primitive
 	* checks if the primitive is properly deleted (from 'crm resources list')
 	END.
-	```
-
+```
 
 ####Additional remarks & reqs:
-- 1) The test is SLE 15 SP0 (possibly SP1) compatible (so far).
+- 1) The test is SLE 15 SP0 and SP1, and SLE 12 SP3 and SP4 (so far).
 - 2) For the test to run with full coverage, one needs to install the ssh keys from the client machine (the machine where you will run the test from) on the server you're going to test. 
 	
 	
