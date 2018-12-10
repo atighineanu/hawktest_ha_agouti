@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"ssher"
+	"ssher" //---make sure you setup your id_rsa password, line #20
 	"strings"
 	"testing"
 	"time"
@@ -79,7 +79,7 @@ const (
 
 func ErrorChecker(err error, place string) {
 	if err != nil {
-		fmt.Printf("test died at\t"+place+"\n%s\n", err)
+		fmt.Printf("test encountered an error at\t"+place+"\n%s\n", err)
 	}
 }
 
@@ -103,6 +103,7 @@ func Clicker(button string, page *agouti.Page) (*agouti.Selection, error) {
 	return element, err
 }
 
+//--- ssh-es into the node of the cluster to check if primitive set correctly (from hawk)
 func CrmPrimitiveChecker(ip string) {
 	b := ssher.SSH("root", ip, "echo `crm configure show`", "default")
 	lines := strings.Split(b, "\\")
@@ -150,6 +151,8 @@ func Login(linku string, page *agouti.Page) {
 	ErrorChecker(err, place)
 }
 
+//--- changes stonith-sbd and 1st listed node's state (to maintenance)
+//--- creates a primitive with giver start, stop, monitor params & checks if all timeout values are set accordungly
 func Cluster_Troubler(linku string, page *agouti.Page, ip string) {
 
 	//--- setting stonith-sbd maintenance state ON/OFF
@@ -176,10 +179,6 @@ func Cluster_Troubler(linku string, page *agouti.Page, ip string) {
 
 	time.Sleep(5 * time.Second)
 
-	//_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/button", page)
-	//place = "Clicking on sbd properties cascade menu"
-	//ErrorChecker(err, place)
-
 	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/a[1]", page)
 	place = "Clicking maintenance trigger next to stonith [to switch maintenance OFF]"
 	ErrorChecker(err, place)
@@ -194,8 +193,6 @@ func Cluster_Troubler(linku string, page *agouti.Page, ip string) {
 	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/button", page)
 	place = "Clicking the cascade menu for stonith-sbd resource"
 	ErrorChecker(err, place)
-
-	//*[@id="resources"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/button
 
 	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/button", page)
 	place = "Selecting \"Clear State\" [of the stonith] in the cascade menu"
@@ -472,7 +469,7 @@ func Cluster_Troubler(linku string, page *agouti.Page, ip string) {
 		fmt.Println("Deleting the primitive --   PASSED")
 	}
 
-	fmt.Println("test finished!")
+	fmt.Println("TEST FINISHED!")
 }
 
 func main() {
