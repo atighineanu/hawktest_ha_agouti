@@ -1152,21 +1152,21 @@ func main() {
 
 	page := PageRefresher(linku, Driver)
 	//--- triggering tests for SLE-12 SP2 family
-	//--- func starts line 814
+	//--- func Cluster_Troubler_12SP2 starts line 822
 	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "12") && strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP2") {
-		//fmt.Println("it worked!")
 		Login(linku, page)
 		Cluster_Troubler_12_SP2(linku, page, ip)
 	}
 
 	//--- triggering tests for SLE-12 SP3 and SP4 family
+	//--- func Cluster_Troubler_12SP34 starts line 495
 	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "12") && (strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP3") || strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP4")) {
-		//fmt.Println("it worked!")
 		Login(linku, page)
 		Cluster_Troubler_12_SP34(linku, page, ip)
 	}
 
 	//--- triggering tests for SLE-15 SP0 and SP1 family
+	//--- func Cluster_Troubler_15 starts line 172
 	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "15") {
 		Login(linku, page)
 		Cluster_Troubler_15(linku, page, ip)
