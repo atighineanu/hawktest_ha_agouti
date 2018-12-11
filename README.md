@@ -25,7 +25,11 @@
 ```
 
 ####Additional remarks & reqs:
-- 1) The test is SLE 15 SP0 and SP1, and SLE 12 SP3 and SP4 (so far).
+```
+- 1) The test covers following distros:
+				* SLE 15 SP0 and SP1
+				* SLE 12 SP2
+				* SLE 12 SP3 and SP4
 - 2) For the test to run with full coverage, one needs to install the ssh keys from the client machine (the machine where you will run the test from) on the server you're going to test. 
 	
 	
