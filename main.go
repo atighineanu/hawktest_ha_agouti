@@ -79,6 +79,8 @@ const (
 	ZENKAKU_HANKAKU = "\uE040"
 )
 
+var DISTRO string
+
 func ErrorChecker(err error, place string) {
 	if err != nil {
 		fmt.Printf("test encountered an error at\t"+place+"\n%s\n", err)
@@ -106,7 +108,7 @@ func Clicker(button string, page *agouti.Page) (*agouti.Selection, error) {
 }
 
 //--- ssh-es into the node of the cluster to check if primitive set correctly (from hawk)
-func CrmPrimitiveChecker(ip string) {
+func CrmPrimitiveChecker(ip string, DISTRO string) {
 	b := ssher.SSH("root", ip, "echo `crm configure show`", "default")
 	lines := strings.Split(b, "\\")
 	for i := 0; i < len(lines); i++ {
@@ -124,7 +126,9 @@ func CrmPrimitiveChecker(ip string) {
 			if strings.Contains(lines[i+3], "stop timeout=15s on-fail=stop") {
 				fmt.Println("stop set correctly  --  PASSED")
 			} else {
-				fmt.Println("stop set correctly  --  FAILED")
+				if DISTRO == "12SP2" && strings.Contains(lines[i+3], "stop timeout=15s") {
+					fmt.Println("stop set correctly  --  FAILED")
+				}
 			}
 			if strings.Contains(lines[i+4], "monitor timeout=9s interval=13s") {
 				fmt.Println("monitor set correctly  --  PASSED")
@@ -166,7 +170,7 @@ func Login(linku string, page *agouti.Page) {
 //--- changes stonith-sbd and 1st listed node's state (to maintenance)
 //--- creates a primitive with given start, stop, monitor params & checks if all timeout values are set accordungly
 //--- This function covers test for SLE 12 SP3 and SP4
-func Cluster_Troubler_12(linku string, page *agouti.Page, ip string) {
+func Cluster_Troubler_12_SP34(linku string, page *agouti.Page, ip string) {
 
 	//--- setting stonith-sbd maintenance state ON/OFF
 	_, err := Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div", page)
@@ -449,7 +453,8 @@ func Cluster_Troubler_12(linku string, page *agouti.Page, ip string) {
 
 	time.Sleep(10 * time.Second)
 
-	CrmPrimitiveChecker(ip)
+	DISTRO = "12SP34"
+	CrmPrimitiveChecker(ip, DISTRO)
 
 	//---------CLICKING STATUS----------------------|
 
@@ -772,7 +777,8 @@ func Cluster_Troubler_15(linku string, page *agouti.Page, ip string) {
 
 	time.Sleep(10 * time.Second)
 
-	CrmPrimitiveChecker(ip)
+	DISTRO = "15SP01"
+	CrmPrimitiveChecker(ip, DISTRO)
 
 	//---------CLICKING MONITORING----------------------|
 	//_, err = Clicker("//*[@id=\"accordion\"]/li[2]/a", page)
@@ -811,9 +817,331 @@ func Cluster_Troubler_15(linku string, page *agouti.Page, ip string) {
 	fmt.Println("TEST FINISHED!")
 }
 
+//--- changes stonith-sbd and 1st listed node's state (to maintenance)
+//--- creates a primitive with given start, stop, monitor params & checks if all timeout values are set accordungly
+//--- This function covers test for SLE 12 SP2
+func Cluster_Troubler_12_SP2(linku string, page *agouti.Page, ip string) {
+
+	//--- setting stonith-sbd maintenance state ON/OFF
+	_, err := Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div", page)
+	place := "Clicking cascade menu next to stonith-sbd resource"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/ul/li[1]/a", page)
+	place = "Clicking maintenance mode in the cascade menu of stonit-sbd"
+	ErrorChecker(err, place)
+
+	time.Sleep(5 * time.Second)
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking \"OK\" in the pop-up menu window"
+	ErrorChecker(err, place)
+
+	//--- waiting few seconds for stonith to enter maintenance mode
+	time.Sleep(4 * time.Second)
+
+	//ssher.SSH("root", ip, "crm status") checking if stonith is "unmanaged"
+	if ssher.SSH("root", ip, "crm status | grep -i stonith | grep -i unmanaged", "default") != "" {
+		fmt.Println("stonith switched to maintenance mode --   PASSED")
+	}
+
+	time.Sleep(5 * time.Second)
+
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/a[1]", page)
+	place = "Clicking maintenance trigger next to stonith [to switch maintenance OFF]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking \"OK\" in the pop-up menu window"
+	ErrorChecker(err, place)
+
+	time.Sleep(7 * time.Second)
+
+	//--- cleaning state of stonith-sbd
+	//*[@id="resources"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/ul/li[2]/a  (reserve)
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/button", page)
+	place = "Clicking the cascade menu for stonith-sbd resource"
+	ErrorChecker(err, place)
+
+	//*[@id="resources"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/ul/li[3]/a
+
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr/td[6]/div/div/ul/li[3]/a", page)
+	place = "Selecting \"Clear State\" [of the stonith] in the cascade menu"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"nodeSelectionDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking \"OK\" to clear state on all nodes"
+	ErrorChecker(err, place)
+
+	time.Sleep(5 * time.Second) //-- waiting, because cleaning stonith-sbd takes some seconds
+
+	//--- navigating to "Nodes" section
+	_, err = Clicker("//*[@id=\"middle\"]/div[2]/div[2]/div/div[1]/ul/li[2]/a", page)
+	place = "Clicking \"Nodes\" Section"
+	ErrorChecker(err, place)
+
+	//--- checking the first listed node's details
+	_, err = Clicker("//*[@id=\"nodes\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[5]/div/a[2]", page)
+	place = "Clicking 1st listed node's details"
+	ErrorChecker(err, place)
+
+	time.Sleep(7 * time.Second) // -- checking first node details opens another windon, takes time
+
+	_, err = Clicker("//*[@id=\"modal\"]/div/div/div[3]/button", page)
+	place = "Pressing \"OK\" on node info pop-up"
+	ErrorChecker(err, place)
+
+	//--- clearing state of first listed node
+	_, err = Clicker("//*[@id=\"nodes\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[5]/div/div/button", page)
+	place = "Pressing cascade menu next to 1st listed node"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"nodes\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[5]/div/div/ul/li[2]/a", page)
+	place = "Chosing \"Clear State\" option @node cascade menu"
+	ErrorChecker(err, place)
+
+	time.Sleep(3 * time.Second)
+
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Pressing \"OK\" in the pop-up menu"
+	ErrorChecker(err, place)
+
+	time.Sleep(7 * time.Second)
+
+	//--- setting first listed node to maintenance mode
+	_, err = Clicker("//*[@id=\"nodes\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[3]/a", page)
+	place = "Clicking the Maintenance trigger [to turn it ON]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking OK on the pop-up dialogue window"
+	ErrorChecker(err, place)
+
+	time.Sleep(5 * time.Second)
+
+	if ssher.SSH("root", ip, "crm status | grep -i node | grep -i maintenance", "default") != "" {
+		fmt.Println("1st listed node switched to maintenance mode --   PASSED")
+	} else {
+		fmt.Println("1st listed node switched to maintenance mode --   FAILED")
+	}
+
+	//--- setting first listed node's maintenance off
+	_, err = Clicker("//*[@id=\"nodes\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[3]/a/i", page)
+	place = "Clicking the Maintenance trigger [to turn it OFF]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking OK on the pop-up dialogue window"
+	ErrorChecker(err, place)
+
+	//-----------SWITCHING TO DASHBOARD--------------
+	_, err = Clicker("//*[@id=\"sidebar\"]/ul/li[2]/ul/li[2]/a", page)
+	place = "Clicking on \"Dashboard\""
+	ErrorChecker(err, place)
+
+	//-------Clicking History ----------------------
+	_, err = Clicker("//*[@id=\"sidebar\"]/ul/li[2]/ul/li[3]/a", page)
+	place = "Clicking \"History\""
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"generate\"]/form/div/div[2]/button", page)
+	place = "Clicking \"generate\""
+	ErrorChecker(err, place)
+	time.Sleep(20 * time.Second)
+
+	//---------Clicking Command Log--------------------
+	_, err = Clicker("//*[@id=\"sidebar\"]/ul/li[3]/ul/li[6]/a", page)
+	place = "Clicking \"Command Log\""
+	ErrorChecker(err, place)
+
+	//----------ADDING A NEW PRIMITIVE...----------------------|
+	//--------Adding Resource---------------------------
+	_, err = Clicker("//*[@id=\"sidebar\"]/ul/li[3]/ul/li[1]/a", page)
+	place = "Clicking \"Add Resource\""
+	ErrorChecker(err, place)
+
+	//--------Selecting New Primitive----------------------
+	_, err = Clicker("//*[@id=\"middle\"]/div[2]/div[2]/ul/li[1]/a/div/i", page)
+	place = "Clicking \"New Primitive\""
+	ErrorChecker(err, place)
+
+	//---------Selecting Primitive Name Field--------------
+	element, err := Clicker("//*[@id=\"primitive_id\"]", page)
+	place = "Clicking on primitive ID field"
+	ErrorChecker(err, place)
+
+	err = element.Fill("cool_primitive")
+	place = "Filling Primitive ID"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"primitive_clazz\"]", page)
+	place = "Clicking \"Primitive Class\" cascade"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"primitive_clazz\"]/option[3]", page)
+	place = "selecting ocf"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"primitive_clazz\"]", page)
+	place = "Clicking \"Primitive Class\" cascade"
+	ErrorChecker(err, place)
+
+	time.Sleep(3 * time.Second)
+
+	_, err = Clicker("//*[@id=\"primitive_type\"]", page)
+	place = "Clicking \"Type\" cascade"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"primitive_type\"]/option[15]", page)
+	place = "Clicking \"Type\" cascade [chosing \"anything\"]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"primitive_type\"]", page)
+	place = "Clicking \"Type\" cascade"
+	ErrorChecker(err, place)
+
+	//--writing binfile name
+	element, err = Clicker("//*[@id=\"binfile\"]", page)
+	place = "Clicking \"binfile\" form"
+	ErrorChecker(err, place)
+
+	err = element.Fill("file")
+	place = "Filling \"binfile\" form"
+	ErrorChecker(err, place)
+
+	//---setting start stop monitoring params
+	//--- start part
+	_, err = Clicker("//*[@id=\"oplist\"]/fieldset/div/div[1]/div[1]/div[2]/div/div/a[1]", page)
+	place = "Clicking \"Edit\" at \"start\" param"
+	ErrorChecker(err, place)
+
+	element, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[1]/div/div", page)
+	place = "Clicking the time form [for start param of cool_primitive]"
+	ErrorChecker(err, place)
+
+	time.Sleep(3 * time.Second)
+
+	err = page.Find("#timeout").SendKeys(BACK_SPACE + BACK_SPACE + BACK_SPACE)
+	place = "3 * backspace"
+	ErrorChecker(err, place)
+
+	err = page.Find("#timeout").Fill("35s")
+	place = "Filling 35 seconds for timeout"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[3]/input", page)
+	place = "Submitting start param [35s]"
+	ErrorChecker(err, place)
+
+	//--- stop part
+	_, err = Clicker("//*[@id=\"oplist\"]/fieldset/div/div[1]/div[2]/div[2]/div/div/a[1]", page)
+	place = "Clicking \"Edit\" at \"stop\" param [of cool_primitive]"
+	ErrorChecker(err, place)
+
+	element, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[1]/div/div", page)
+	place = "Clicking the time form [for stop param of cool_primitive]"
+	ErrorChecker(err, place)
+
+	err = page.Find("#timeout").SendKeys(BACK_SPACE + BACK_SPACE + BACK_SPACE)
+	place = "3 * backspace"
+	ErrorChecker(err, place)
+
+	err = page.Find("#timeout").Fill("15s")
+	place = "Filling 15 seconds timeout"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[2]/div/div/select/option[6]", page)
+	place = "Setting \"on-fail\" for stop param [of cool_primitive]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[3]/input", page)
+	place = "Submitting stop param [15s, stop - on-fail]"
+	ErrorChecker(err, place)
+
+	//--- monitoring part
+	_, err = Clicker("//*[@id=\"oplist\"]/fieldset/div/div[1]/div[3]/div[2]/div/div/a[1]", page)
+	place = "Clicking \"Edit\" at \"monitoring\" param [of cool_primitive]"
+	ErrorChecker(err, place)
+
+	element, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[1]/div/div", page)
+	place = "Clicking on \"timeout\" form [for monitoring of cool_primitive]"
+	ErrorChecker(err, place)
+
+	err = page.Find("#timeout").SendKeys(BACK_SPACE + BACK_SPACE + BACK_SPACE)
+	place = "3 * backspace"
+	ErrorChecker(err, place)
+
+	err = page.Find("#timeout").Fill("9s")
+	place = "Filling 9 seconds timeout"
+	ErrorChecker(err, place)
+
+	err = page.Find("#interval").SendKeys(BACK_SPACE + BACK_SPACE + BACK_SPACE)
+	place = "3 * backspace"
+	ErrorChecker(err, place)
+
+	err = page.Find("#interval").Fill("13s")
+	place = "Filling 13 seconds interval"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[3]/input", page)
+	place = "Submitting stop param [15s, stop - on-fail]"
+	ErrorChecker(err, place)
+
+	//-----setting target role of cool_primitive
+	_, err = Clicker("//*[@id=\"target-role\"]/option[2]", page)
+	place = "Selecting \"Started\" [role]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"target-role\"]", page)
+	place = "Clicking \"target-role\""
+	ErrorChecker(err, place)
+
+	//---Pressing "CREATE" [Primitive] ...
+	_, err = Clicker("//*[@id=\"new_primitive\"]/span/span/input", page)
+	place = "Clicking \"Create\" [primitive]"
+	ErrorChecker(err, place)
+
+	time.Sleep(10 * time.Second)
+
+	DISTRO = "12SP2"
+	CrmPrimitiveChecker(ip, DISTRO)
+
+	//---------CLICKING STATUS----------------------|
+
+	_, err = Clicker("//*[@id=\"sidebar\"]/ul/li[2]/ul/li[1]/a", page)
+	place = "Clicking Status"
+	ErrorChecker(err, place)
+
+	//--------deleting the Cool_Primitive---------------
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[6]/div/div/button", page)
+	place = "Clicking cascade next to cool_primitive resource"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"resources\"]/div[1]/div[2]/div[2]/table/tbody/tr[1]/td[6]/div/div/ul/li[7]/a", page)
+	place = "Clicking \"Edit\" in the cascade [of cool_primitive]"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"middle\"]/div[2]/div[1]/h1/div/div/a[3]", page)
+	place = "Clicking \"DELETE\" button"
+	ErrorChecker(err, place)
+
+	_, err = Clicker("//*[@id=\"confirmationDialog\"]/div/div/form/div[3]/button[2]", page)
+	place = "Clicking \"OK\" in the pop-up window [to delete cool_primitive]"
+	ErrorChecker(err, place)
+
+	time.Sleep(20 * time.Second)
+
+	if !strings.Contains(ssher.SSH("root", ip, "crm resource list", "default"), "ocf::") {
+		fmt.Println("Deleting the primitive --   PASSED")
+	} else {
+		fmt.Println("Deleting the primitive --   FAILED")
+	}
+
+	fmt.Println("TEST FINISHED!")
+}
+
 func main() {
 	var t *testing.T
-	ip := "10.160.64.105"
+	ip := "10.160.66.220"
 	linku := "https://" + ip + ":7630"
 	Driver := agouti.ChromeDriver()
 	if err := Driver.Start(); err != nil {
@@ -821,15 +1149,22 @@ func main() {
 	}
 
 	page := PageRefresher(linku, Driver)
+	//--- triggering tests for SLE-12 SP2 family
+	//--- func starts line 814
+	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "12") && strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP2") {
+		//fmt.Println("it worked!")
+		Login(linku, page)
+		Cluster_Troubler_12_SP2(linku, page, ip)
+	}
 
-	//--- triggering tests for SLE-12 family
+	//--- triggering tests for SLE-12 SP3 and SP4 family
 	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "12") && (strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP3") || strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "SP4")) {
 		//fmt.Println("it worked!")
 		Login(linku, page)
-		Cluster_Troubler_12(linku, page, ip)
+		Cluster_Troubler_12_SP34(linku, page, ip)
 	}
 
-	//--- triggering tests for SLE-15 family
+	//--- triggering tests for SLE-15 SP0 and SP1 family
 	if strings.Contains(ssher.SSH("root", ip, "cat /etc/os-release", "default"), "15") {
 		Login(linku, page)
 		Cluster_Troubler_15(linku, page, ip)
