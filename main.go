@@ -127,6 +127,8 @@ func CrmPrimitiveChecker(ip string, DISTRO string) {
 				fmt.Println("stop set correctly  --  PASSED")
 			} else {
 				if DISTRO == "12SP2" && strings.Contains(lines[i+3], "stop timeout=15s") {
+					fmt.Println("stop set correctly  --  PASSED")
+				} else {
 					fmt.Println("stop set correctly  --  FAILED")
 				}
 			}
@@ -1062,7 +1064,7 @@ func Cluster_Troubler_12_SP2(linku string, page *agouti.Page, ip string) {
 	place = "Clicking \"Edit\" at \"monitoring\" param [of cool_primitive]"
 	ErrorChecker(err, place)
 
-	element, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[1]/div/div", page)
+	element, err = Clicker("//*[@id=\"modal\"]/div/div/form/div[2]/fieldset/div/div[1]/div", page)
 	place = "Clicking on \"timeout\" form [for monitoring of cool_primitive]"
 	ErrorChecker(err, place)
 
