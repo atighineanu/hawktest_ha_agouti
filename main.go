@@ -1146,7 +1146,7 @@ func main() {
 	linku := "https://" + ip + ":7630"
 	Driver := agouti.ChromeDriver()
 	if err := Driver.Start(); err != nil {
-		log.Fatalf("Failed to start Selenium:", err)
+		log.Fatalf("Failed to start Selenium: %s", err)
 	}
 
 	page := PageRefresher(linku, Driver)
