@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"ssher" //---replace it with https://github.com/atighineanu/ssher; >>> make sure you write your id_rsa password, line #20;
-
 	//--- also, export the client's ssh-key(s) to the server you are going to test (see README notes)
 	"strings"
 	"testing"
@@ -1142,12 +1142,11 @@ func Cluster_Troubler_12_SP2(linku string, page *agouti.Page, ip string) {
 }
 
 func main() {
-	var t *testing.T
 	ip := "10.160.66.220"
 	linku := "https://" + ip + ":7630"
 	Driver := agouti.ChromeDriver()
 	if err := Driver.Start(); err != nil {
-		t.Fatal("Failed to start Selenium:", err)
+		log.Fatalf("Failed to start Selenium:", err)
 	}
 
 	page := PageRefresher(linku, Driver)
